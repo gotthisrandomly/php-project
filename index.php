@@ -1,40 +1,45 @@
 <?php
-session_start();
-require_once '../config/database.php';
-require_once '../includes/functions.php';
 
-// Router
-$request = $_SERVER['REQUEST_URI'];
-$viewDir = '/home/engine/app/project/php_project/public/views';
+require_once __DIR__ . '/includes/autoloader.php';
+require_once __DIR__ . '/includes/error_handler.php';
 
-switch ($request) {
-    case '/':
-        require $viewDir . '/home.php';
-        break;
-    case '/login':
-        require $viewDir . '/login.php';
-        break;
-    case '/signup':
-        require $viewDir . '/signup.php';
-        break;
-    case '/admin':
-        require $viewDir . '/admin.php';
-        break;
-    case '/slot-machine':
-        require $viewDir . '/slot-machine.php';
-        break;
-    case '/roulette':
-        require $viewDir . '/roulette.php';
-        break;
-    case '/deposit':
-        require $viewDir . '/deposit.php';
-        break;
-    case '/logout':
-        session_destroy();
-        header('Location: /');
-        exit;
-    default:
-        http_response_code(404);
-        require $viewDir . '/404.php';
-        break;
+// Define routes
+$routes = [
+    '/' => 'HomeController',
+    '/login' => 'LoginController',
+    '/signup' => 'SignupController',
+    '/blackjack' => 'BlackjackController',
+    '/roulette' => 'RouletteController',
+    '/slot-machine' => 'SlotMachineController',
+    '/admin' => 'AdminController',
+    '/deposit' => 'DepositController',
+    '/cashapp' => 'CashappController',
+    '/payment' => 'PaymentGatewayController',
+    '/responsible-gambling' => 'ResponsibleGamblingController',
+];
+
+// Get the current URI
+$uri = $_SERVER['REQUEST_URI'];
+
+// Remove query string
+if (false !== $pos = strpos($uri, '?')) {
+    $uri = substr($uri, 0, $pos);
+}
+
+// Route to the appropriate controller
+if (isset($routes[$uri])) {
+    $controllerName = $routes[$uri];
+    $controllerFile = __DIR__ . '/controllers/' . $controllerName . '.php';
+    
+    if (file_exists($controllerFile)) {
+        require_once $controllerFile;
+        $controller = new $controllerName();
+        $controller->index();
+    } else {
+        // Handle 404
+        require_once __DIR__ . '/views/404.php';
+    }
+} else {
+    // Handle 404
+    require_once __DIR__ . '/views/404.php';
 }
