@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/validation.php';
 require_once __DIR__ . '/../includes/oauth.php';
 require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/ErrorHandler.php';
 
 class LoginController {
     private $db;
@@ -27,6 +28,7 @@ class LoginController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!verify_csrf_token($_POST['csrf_token'])) {
                 $errors[] = "Invalid CSRF token";
+                ErrorHandler::logCustomError("Invalid CSRF token attempt");
             } else {
                 $username = sanitize_input($_POST['username']);
                 $password = $_POST['password'];
@@ -36,6 +38,7 @@ class LoginController {
                 } else {
                     if ($this->check_brute_force($username)) {
                         $errors[] = "Too many failed attempts. Please try again later.";
+                        ErrorHandler::logCustomError("Brute force attempt detected for user: $username");
                     } else {
                         if ($this->verify_login($username, $password)) {
                             $this->reset_login_attempts($username);
@@ -45,6 +48,7 @@ class LoginController {
                         } else {
                             $this->increment_login_attempts($username);
                             $errors[] = "Invalid username or password.";
+                            ErrorHandler::logCustomError("Failed login attempt for user: $username");
                         }
                     }
                 }

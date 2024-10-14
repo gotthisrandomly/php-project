@@ -5,9 +5,12 @@ ini_set('display_errors', 0);
 require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/includes/ErrorHandler.php';
 
+// Determine if we're in production mode (you can set this based on your deployment process)
+$isProduction = false; // Set to true for production environment
+
+ErrorHandler::setProductionMode($isProduction);
 set_exception_handler([ErrorHandler::class, 'handleException']);
 set_error_handler([ErrorHandler::class, 'handleError']);
-require_once __DIR__ . '/includes/error_handler.php';
 
 // Front Controller
 class FrontController {
@@ -55,12 +58,15 @@ class FrontController {
                 if (method_exists($controller, $methodName)) {
                     $controller->$methodName();
                 } else {
+                    ErrorHandler::logCustomError("Method $methodName not found in $controllerName");
                     throw new Exception("Method $methodName not found in $controllerName");
                 }
             } else {
+                ErrorHandler::logCustomError("Controller class $controllerName not found");
                 throw new Exception("Controller class $controllerName not found");
             }
         } else {
+            ErrorHandler::logCustomError("Controller file $controllerFile not found");
             throw new Exception("Controller file $controllerFile not found");
         }
     }
@@ -70,6 +76,7 @@ class FrontController {
         if (file_exists($viewFile)) {
             require_once $viewFile;
         } else {
+            ErrorHandler::logCustomError("View file $viewFile not found");
             throw new Exception("View file $viewFile not found");
         }
     }
@@ -80,8 +87,5 @@ try {
     $frontController = new FrontController();
     $frontController->run();
 } catch (Exception $e) {
-    // Log the error
-    error_log($e->getMessage());
-    // Display a user-friendly error message
-    echo "An error occurred. Please try again later.";
+    ErrorHandler::handleException($e);
 }
