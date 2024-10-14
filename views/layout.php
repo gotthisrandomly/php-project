@@ -11,7 +11,12 @@ session_start();
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    </style>
+        .error { color: red; }
+        .success { color: green; }
+        .oauth-buttons { margin-top: 20px; }
+        .oauth-button { display: inline-block; padding: 10px 20px; margin-right: 10px; text-decoration: none; color: #fff; border-radius: 5px; }
+        .google { background-color: #DB4437; }
+        .facebook { background-color: #4267B2; }
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">

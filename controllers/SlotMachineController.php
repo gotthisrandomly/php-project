@@ -11,6 +11,22 @@ class SlotMachineController {
     ];
     private $bonusSymbol = '⭐';
 
+    public function index() {
+        session_start();
+        if (!is_logged_in()) {
+            header('Location: /login');
+            exit;
+        }
+
+        $title = 'Slot Machine - SD777Slots';
+        
+        ob_start();
+        include __DIR__ . '/../views/slot-machine.php';
+        $content = ob_get_clean();
+
+        include __DIR__ . '/../views/layout.php';
+    }
+
     public function spin($bet) {
         $result = [];
         for ($i = 0; $i < 3; $i++) {
@@ -51,4 +67,3 @@ class SlotMachineController {
         }
     }
 }
-?>
