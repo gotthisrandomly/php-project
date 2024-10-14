@@ -1,9 +1,7 @@
-<?php include 'header.php'; ?>
-
 <div class="container mt-5">
-    <h1>Welcome to our Online Casino</h1>
+    <h1>Welcome to SD777Slots</h1>
     <p>Enjoy our selection of games and have a great time!</p>
-    
+
     <div class="row mt-4">
         <div class="col-md-4">
             <h2>Blackjack</h2>
@@ -22,10 +20,12 @@
         </div>
     </div>
 
+    <?php if (!isset($_SESSION['user_id'])): ?>
     <div class="mt-5">
-        <h3>Admin Access</h3>
-        <a href="/admin" class="btn btn-secondary">Admin Login</a>
+        <h2>Join Now</h2>
+        <p>Create an account to start playing and winning!</p>
+        <a href="/signup" class="btn btn-success">Sign Up</a>
+        <a href="/login" class="btn btn-secondary">Login</a>
     </div>
+    <?php endif; ?>
 </div>
-
-<?php include 'footer.php'; ?>
