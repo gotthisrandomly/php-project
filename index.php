@@ -1,8 +1,12 @@
 <?php
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 require_once __DIR__ . '/includes/autoloader.php';
+require_once __DIR__ . '/includes/ErrorHandler.php';
+
+set_exception_handler([ErrorHandler::class, 'handleException']);
+set_error_handler([ErrorHandler::class, 'handleError']);
 require_once __DIR__ . '/includes/error_handler.php';
 
 // Front Controller

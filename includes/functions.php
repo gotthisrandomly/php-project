@@ -1,63 +1,76 @@
 <?php
-function register_user($username, $password) {
-    global $pdo;
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-    $sql = "INSERT INTO users (username, password) VALUES (:username, :password)";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute(['username' => $username, 'password' => $hashed_password]);
-}
-
-function login_user($username, $password) {
-    global $pdo;
-    $sql = "SELECT * FROM users WHERE username = :username";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['username' => $username]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        return true;
-    }
-    return false;
-}
+require_once __DIR__ . '/Database.php';
 
 function is_logged_in() {
     return isset($_SESSION['user_id']);
 }
 
+function login_user($username, $password) {
+    $db = Database::getInstance();
+    $user = $db->fetch("SELECT * FROM users WHERE username = ?", [$username]);
+
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['username'] = $user['username'];
+        return true;
+    }
+
+    return false;
+}
+
+function register_user($username, $password, $email) {
+    $db = Database::getInstance();
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    try {
+        $db->execute(
+            "INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
+            [$username, $hashed_password, $email]
+        );
+        return true;
+    } catch (PDOException $e) {
+        error_log("Error registering user: " . $e->getMessage());
+        return false;
+    }
+}
+
 function get_user_balance($user_id) {
-    global $pdo;
-    $sql = "SELECT balance FROM users WHERE id = :user_id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['user_id' => $user_id]);
-    $result = $stmt->fetch();
+    $db = Database::getInstance();
+    $result = $db->fetch("SELECT balance FROM users WHERE id = ?", [$user_id]);
     return $result ? $result['balance'] : 0;
 }
 
-function update_balance($user_id, $amount) {
-    global $pdo;
-    $sql = "UPDATE users SET balance = balance + :amount WHERE id = :user_id";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute(['amount' => $amount, 'user_id' => $user_id]);
+function update_user_balance($user_id, $amount) {
+    $db = Database::getInstance();
+    return $db->execute(
+        "UPDATE users SET balance = balance + ? WHERE id = ?",
+        [$amount, $user_id]
+    );
 }
 
-function play_slot_machine($user_id, $bet) {
-    // Implement slot machine logic here
-    // Return win amount or 0 if lost
-    $win_amount = rand(0, $bet * 2); // Simple random win logic for demonstration
-    if ($win_amount > 0) {
-        update_balance($user_id, $win_amount - $bet);
-        record_transaction($user_id, $win_amount, 'win');
-    } else {
-        update_balance($user_id, -$bet);
-        record_transaction($user_id, $bet, 'bet');
+function generate_csrf_token() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
-    return $win_amount;
+    return $_SESSION['csrf_token'];
 }
 
-function record_transaction($user_id, $amount, $type) {
-    global $pdo;
-    $sql = "INSERT INTO transactions (user_id, amount, type) VALUES (:user_id, :amount, :type)";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute(['user_id' => $user_id, 'amount' => $amount, 'type' => $type]);
+function verify_csrf_token($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function log_game_result($user_id, $game_type, $bet_amount, $result_amount) {
+    $db = Database::getInstance();
+    return $db->execute(
+        "INSERT INTO game_logs (user_id, game_type, bet_amount, result_amount) VALUES (?, ?, ?, ?)",
+        [$user_id, $game_type, $bet_amount, $result_amount]
+    );
+}
+
+function get_user_game_history($user_id, $limit = 10) {
+    $db = Database::getInstance();
+    return $db->fetchAll(
+        "SELECT * FROM game_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?",
+        [$user_id, $limit]
+    );
 }

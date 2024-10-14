@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../includes/validation.php';
+require_once __DIR__ . '/../includes/Validator.php';
 
 class SignupController {
     public function index() {
@@ -18,17 +18,17 @@ class SignupController {
             if (!verify_csrf_token($_POST['csrf_token'])) {
                 $errors[] = "Invalid CSRF token";
             } else {
-                $username = sanitize_input($_POST['username']);
+                $username = Validator::sanitizeInput($_POST['username']);
                 $password = $_POST['password'];
-                $email = sanitize_input($_POST['email']);
+                $email = Validator::sanitizeInput($_POST['email']);
 
-                $username_error = validate_username($username);
+                $username_error = Validator::validateUsername($username);
                 if ($username_error) $errors[] = $username_error;
 
-                $password_error = validate_password($password);
+                $password_error = Validator::validatePassword($password);
                 if ($password_error) $errors[] = $password_error;
 
-                $email_error = validate_email($email);
+                $email_error = Validator::validateEmail($email);
                 if ($email_error) $errors[] = $email_error;
 
                 if (empty($errors)) {
