@@ -1,4 +1,12 @@
 <?php
+// Main entry point for the application
+session_start();
+require_once 'includes/autoloader.php';
+require_once 'includes/functions.php';
+require_once 'includes/ErrorHandler.php';
+require_once 'includes/Logger.php';
+
+ErrorHandler::initialize();
 session_start();
 require_once 'includes/autoloader.php';
 require_once 'includes/functions.php';
