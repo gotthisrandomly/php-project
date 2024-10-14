@@ -38,6 +38,7 @@ class SignupController {
                         exit;
                     } else {
                         $errors[] = "Failed to create account. Please try again.";
+                        ErrorHandler::logCustomError("Failed to create account for username: $username");
                     }
                 }
             }

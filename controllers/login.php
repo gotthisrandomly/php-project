@@ -65,38 +65,57 @@ class LoginController {
     }
 
     private function verify_login($username, $password) {
-        $stmt = $this->db->prepare("SELECT password FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
-            return password_verify($password, $user['password']);
+        try {
+            $stmt = $this->db->prepare("SELECT password FROM users WHERE username = ?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows === 1) {
+                $user = $result->fetch_assoc();
+                return password_verify($password, $user['password']);
+            }
+            return false;
+        } catch (Exception $e) {
+            ErrorHandler::logCustomError("Database error in verify_login: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     private function check_brute_force($username) {
-        $stmt = $this->db->prepare("SELECT COUNT(*) as attempts FROM login_attempts WHERE username = ? AND time > ?");
-        $time = time() - $this->lockout_time;
-        $stmt->bind_param("si", $username, $time);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $attempts = $result->fetch_assoc()['attempts'];
-        return $attempts >= $this->max_attempts;
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as attempts FROM login_attempts WHERE username = ? AND time > ?");
+            $time = time() - $this->lockout_time;
+            $stmt->bind_param("si", $username, $time);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $attempts = $result->fetch_assoc()['attempts'];
+            return $attempts >= $this->max_attempts;
+        } catch (Exception $e) {
+            ErrorHandler::logCustomError("Database error in check_brute_force: " . $e->getMessage());
+            return false;
+        }
     }
 
     private function increment_login_attempts($username) {
-        $stmt = $this->db->prepare("INSERT INTO login_attempts (username, time) VALUES (?, ?)");
-        $time = time();
-        $stmt->bind_param("si", $username, $time);
-        $stmt->execute();
+        try {
+            $stmt = $this->db->prepare("INSERT INTO login_attempts (username, time) VALUES (?, ?)");
+            $time = time();
+            $stmt->bind_param("si", $username, $time);
+            $stmt->execute();
+        } catch (Exception $e) {
+            ErrorHandler::logCustomError("Database error in increment_login_attempts: " . $e->getMessage());
+        }
     }
 
     private function reset_login_attempts($username) {
-        $stmt = $this->db->prepare("DELETE FROM login_attempts WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
+        try {
+            $stmt = $this->db->prepare("DELETE FROM login_attempts WHERE username = ?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+        } catch (Exception $e) {
+            ErrorHandler::logCustomError("Database error in reset_login_attempts: " . $e->getMessage());
+        }
+    }
     }
 }
