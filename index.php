@@ -1,11 +1,11 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
+session_start();
+require_once 'includes/autoloader.php';
+require_once 'includes/functions.php';
+require_once 'includes/ErrorHandler.php';
+require_once 'includes/Logger.php';
 
-require_once __DIR__ . '/includes/autoloader.php';
-require_once __DIR__ . '/includes/ErrorHandler.php';
-
-// Determine if we're in production mode (you can set this based on your deployment process)
+ErrorHandler::initialize();
 $isProduction = false; // Set to true for production environment
 
 ErrorHandler::setProductionMode($isProduction);
@@ -26,8 +26,10 @@ class FrontController {
         '/cashapp' => ['CashappController', 'index'],
         '/payment' => ['PaymentGatewayController', 'index'],
         '/responsible-gambling' => ['ResponsibleGamblingController', 'index'],
+        '/password-reset' => ['PasswordResetController', 'index'],
+        '/password-reset/reset' => ['PasswordResetController', 'reset'],
+        '/api' => ['ApiController', 'handleRequest'],
     ];
-
     public function run() {
         $uri = $this->getUri();
         
