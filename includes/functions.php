@@ -7,11 +7,14 @@ function is_logged_in() {
 
 function login_user($username, $password) {
     $db = Database::getInstance();
-    $user = $db->fetch("SELECT * FROM users WHERE username = ?", [$username]);
+    $users = $db->fetchAll('users');
+    $user = array_filter($users, function($u) use ($username) {
+        return $u['username'] === $username;
+    });
 
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
+    if ($user && password_verify($password, reset($user)['password'])) {
+        $_SESSION['user_id'] = key($user);
+        $_SESSION['username'] = $username;
         return true;
     }
 
@@ -22,13 +25,17 @@ function register_user($username, $password, $email) {
     $db = Database::getInstance();
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
+    $user_data = [
+        'username' => $username,
+        'password' => $hashed_password,
+        'email' => $email,
+        'balance' => 0
+    ];
+
     try {
-        $db->execute(
-            "INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
-            [$username, $hashed_password, $email]
-        );
+        $db->execute('users', $user_data);
         return true;
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         error_log("Error registering user: " . $e->getMessage());
         return false;
     }
@@ -36,16 +43,19 @@ function register_user($username, $password, $email) {
 
 function get_user_balance($user_id) {
     $db = Database::getInstance();
-    $result = $db->fetch("SELECT balance FROM users WHERE id = ?", [$user_id]);
-    return $result ? $result['balance'] : 0;
+    $user = $db->fetch('users', $user_id);
+    return $user ? $user['balance'] : 0;
 }
 
 function update_user_balance($user_id, $amount) {
     $db = Database::getInstance();
-    return $db->execute(
-        "UPDATE users SET balance = balance + ? WHERE id = ?",
-        [$amount, $user_id]
-    );
+    $user = $db->fetch('users', $user_id);
+    if ($user) {
+        $user['balance'] += $amount;
+        $db->execute('users', $user);
+        return true;
+    }
+    return false;
 }
 
 function generate_csrf_token() {
@@ -61,16 +71,24 @@ function verify_csrf_token($token) {
 
 function log_game_result($user_id, $game_type, $bet_amount, $result_amount) {
     $db = Database::getInstance();
-    return $db->execute(
-        "INSERT INTO game_logs (user_id, game_type, bet_amount, result_amount) VALUES (?, ?, ?, ?)",
-        [$user_id, $game_type, $bet_amount, $result_amount]
-    );
+    $log_data = [
+        'user_id' => $user_id,
+        'game_type' => $game_type,
+        'bet_amount' => $bet_amount,
+        'result_amount' => $result_amount,
+        'timestamp' => date('Y-m-d H:i:s')
+    ];
+    return $db->execute('game_logs', $log_data);
 }
 
 function get_user_game_history($user_id, $limit = 10) {
     $db = Database::getInstance();
-    return $db->fetchAll(
-        "SELECT * FROM game_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?",
-        [$user_id, $limit]
-    );
+    $all_logs = $db->fetchAll('game_logs');
+    $user_logs = array_filter($all_logs, function($log) use ($user_id) {
+        return $log['user_id'] === $user_id;
+    });
+    usort($user_logs, function($a, $b) {
+        return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+    });
+    return array_slice($user_logs, 0, $limit);
 }
