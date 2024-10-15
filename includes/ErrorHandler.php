@@ -1,6 +1,23 @@
 <?php
 class ErrorHandler {
     private static $isProduction = false;
+    private static $errorTypes = [
+        E_ERROR => 'Error',
+        E_WARNING => 'Warning',
+        E_PARSE => 'Parse Error',
+        E_NOTICE => 'Notice',
+        E_CORE_ERROR => 'Core Error',
+        E_CORE_WARNING => 'Core Warning',
+        E_COMPILE_ERROR => 'Compile Error',
+        E_COMPILE_WARNING => 'Compile Warning',
+        E_USER_ERROR => 'User Error',
+        E_USER_WARNING => 'User Warning',
+        E_USER_NOTICE => 'User Notice',
+        E_STRICT => 'Strict',
+        E_RECOVERABLE_ERROR => 'Recoverable Error',
+        E_DEPRECATED => 'Deprecated',
+        E_USER_DEPRECATED => 'User Deprecated',
+    ];
 
     public static function setProductionMode($isProduction) {
         self::$isProduction = $isProduction;
@@ -21,7 +38,7 @@ class ErrorHandler {
         if (self::$isProduction) {
             echo "An error occurred. Please try again later.";
         } else {
-            echo "Exception: " . $exception->getMessage();
+            echo "<pre>Exception: " . $exception->getMessage() . "</pre>";
         }
     }
 
@@ -30,9 +47,10 @@ class ErrorHandler {
             return false;
         }
 
+        $errorType = isset(self::$errorTypes[$errno]) ? self::$errorTypes[$errno] : 'Unknown Error';
         $logMessage = sprintf(
             "Error: [%s] %s in %s on line %d",
-            $errno,
+            $errorType,
             $errstr,
             $errfile,
             $errline
@@ -40,8 +58,14 @@ class ErrorHandler {
 
         self::logError($logMessage);
 
-        if (!self::$isProduction) {
-            echo "Error: " . $errstr;
+        if (!self::$isProduction && ini_get('display_errors')) {
+            echo "<pre>$logMessage</pre>";
+        } else {
+            echo "An error occurred. Please try again later.";
+        }
+
+        if ($errno == E_USER_ERROR) {
+            exit(1);
         }
 
         return true;
@@ -55,4 +79,12 @@ class ErrorHandler {
         error_log($message);
         // You can add additional logging here, such as logging to a database or external service
     }
+
+    public static function register() {
+        set_error_handler([self::class, 'handleError']);
+        set_exception_handler([self::class, 'handleException']);
+    }
 }
+
+// Register the error and exception handlers
+ErrorHandler::register();
