@@ -1,6 +1,9 @@
 <?php
-session_start();
+require_once 'auth.php';
 require_once '../includes/db_config.php';
+require_once '../includes/functions.php';
+
+$action = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has admin privileges
