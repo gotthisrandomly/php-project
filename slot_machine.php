@@ -41,6 +41,8 @@ function generateServerSeed() {
 // Generate client seed (if not provided)
 function generateClientSeed() {
     return bin2hex(random_bytes(8));
+}
+
 // Function to check for winning combinations
 function checkWinningCombinations($result, $settings, $symbols, $lines, $bet_amount) {
     $winnings = 0;
@@ -89,11 +91,47 @@ function checkWinningCombinations($result, $settings, $symbols, $lines, $bet_amo
 
     return [
         'total_win' => $winnings,
-        'winning_lines' => $winning_lines
+        'winning_lines' => $winning_lines,
+        'bonus_game_triggered' => $count >= 3 && $first_symbol == $settings['scatter_symbol']
     ];
 }
-        'winning_lines' => $winning_lines
-    ];
+
+// Function to generate bonus game options
+function generateBonusGame($server_seed, $client_seed) {
+    $hash = hash_hmac('sha256', $server_seed . $client_seed, 'bonus_game_secret');
+    $options = [];
+    for ($i = 0; $i < 5; $i++) {
+        $value = hexdec(substr($hash, $i * 2, 2)) % 5 + 1; // Generate values between 1 and 5
+        $options[] = $value * 10; // Multiply by 10 to get values between 10 and 50
+    }
+    return $options;
+}
+
+// Handle bonus game action
+if (isset($_POST['action']) && $_POST['action'] === 'bonus_game') {
+    $client_seed = $_POST['client_seed'] ?? generateClientSeed();
+    $server_seed = generateServerSeed();
+    $options = generateBonusGame($server_seed, $client_seed);
+    $selected_index = intval($_POST['selected_index']);
+    
+    if ($selected_index >= 0 && $selected_index < count($options)) {
+        $bonus_win = $options[$selected_index];
+        
+        // Update user's balance with bonus win
+        $stmt = $pdo->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+        $stmt->execute([$bonus_win, $_SESSION['user_id']]);
+        
+        echo json_encode([
+            'success' => true,
+            'bonus_win' => $bonus_win,
+            'options' => $options,
+            'server_seed' => $server_seed,
+            'client_seed' => $client_seed
+        ]);
+    } else {
+        echo json_encode(['error' => 'Invalid selection']);
+    }
+    exit;
 }
 
 // Handle setting max bet limit
@@ -359,8 +397,60 @@ if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
             </div>
 
             <div class="mt-5">
-                <h3>Responsible Gaming</h3>
-                <form id="responsible-gaming-form">
+                                    updateJackpot(result.jackpot);
+
+                                    if (result.bonus_game_triggered) {
+                                        startBonusGame();
+                                    }
+                                }, 1500); // Stop spinning after 1.5 seconds
+                            }
+                        }
+                    });
+                }
+
+                function startBonusGame() {
+                    let bonusGameHtml = `
+                        <div id="bonus-game" class="mt-3">
+                            <h3>Bonus Game</h3>
+                            <p>Pick a box to reveal your bonus win!</p>
+                            <div class="d-flex justify-content-around">
+                                <button class="btn btn-primary bonus-option">Box 1</button>
+                                <button class="btn btn-primary bonus-option">Box 2</button>
+                                <button class="btn btn-primary bonus-option">Box 3</button>
+                                <button class="btn btn-primary bonus-option">Box 4</button>
+                                <button class="btn btn-primary bonus-option">Box 5</button>
+                            </div>
+                        </div>
+                    `;
+                    $('#winning-lines').after(bonusGameHtml);
+
+                    $('.bonus-option').on('click', function() {
+                        let selectedIndex = $(this).index();
+                        $.ajax({
+                            url: 'slot_machine.php',
+                            method: 'POST',
+                            data: {
+                                action: 'bonus_game',
+                                selected_index: selectedIndex,
+                                client_seed: $('#client_seed').val()
+                            },
+                            success: function(response) {
+                                let result = JSON.parse(response);
+                                if (result.success) {
+                                    $('.bonus-option').prop('disabled', true);
+                                    $(`.bonus-option:eq(${selectedIndex})`).text(`$${result.bonus_win}`);
+                                    updateBalance(parseFloat($('.balance').text()) + result.bonus_win);
+                                    alert(`Congratulations! You won $${result.bonus_win} in the bonus game!`);
+                                } else {
+                                    alert('Error: ' + result.error);
+                                }
+                                $('#bonus-game').remove();
+                            }
+                        });
+                    });
+                }
+
+                function updateSlotMachine(symbols) {
                     <div class="form-group">
                         <label for="max-bet-limit">Set Maximum Bet Limit</label>
                         <input type="number" class="form-control" id="max-bet-limit" name="max_bet_limit" min="<?php echo $settings['min_bet']; ?>" max="<?php echo $settings['max_bet']; ?>" step="0.01">
@@ -409,6 +499,18 @@ if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
                                     if (result.jackpot_won) {
                                         jackpotSound.play();
                                         alert('Congratulations! You won the jackpot!');
+                                    } else if (result.winnings > 0) {
+                                        winSound.play();
+                                    }
+
+                                    if (result.bonus_game_triggered) {
+                                        startBonusGame();
+                                    }
+                                }, 1500); // Stop spinning after 1.5 seconds
+                            }
+                        }
+                    });
+                }
                                     } else if (result.winnings > 0) {
                                         winSound.play();
                                     }
