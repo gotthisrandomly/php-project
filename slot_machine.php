@@ -1,23 +1,23 @@
 <?php
 session_start();
 require_once 'includes/db_connect.php';
-require_once 'includes/auth_check.php';
+require_once 'includes/functions.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit();
+}
 
 // Fetch slot machine settings
-$stmt = $pdo->query("SELECT * FROM slot_settings");
+$stmt = $pdo->query("SELECT * FROM settings");
 $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// Fetch symbols
-$stmt = $pdo->query("SELECT * FROM slot_symbols ORDER BY id");
-$symbols = $stmt->fetchAll();
+// Fetch user balance
+$stmt = $pdo->prepare("SELECT balance FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user_balance = $stmt->fetchColumn();
 
-// Fetch current jackpot value
-$stmt = $pdo->query("SELECT value FROM jackpot WHERE id = 1");
-$jackpot = $stmt->fetchColumn();
-
-// Function to generate a provably fair slot result
-function generateSlotResult($pdo, $settings, $server_seed, $client_seed) {
-    $result = [];
+$symbols = ['cherry', 'lemon', 'orange', 'plum', 'bell', 'bar', 'seven', $settings['wild_symbol'], $settings['scatter_symbol']];
     $hash = hash_hmac('sha256', $server_seed . $client_seed, 'slot_machine_secret');
     $hash_chars = str_split($hash);
     
@@ -197,27 +197,41 @@ if (isset($_POST['action']) && $_POST['action'] === 'spin') {
     if ($scatter_count >= 3) {
         $free_spins_won = $settings['free_spins_' . $scatter_count];
         $free_spins += $free_spins_won;
-    }
-
-    // Update free spins count
-    if ($free_spins > 0) {
-        $free_spins--;
-    }
-    $_SESSION['free_spins'] = $free_spins;
-    
-    // Update user's balance with winnings
-    $stmt = $pdo->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
-    $stmt->execute([$winnings, $_SESSION['user_id']]);
-    
-    // Store game result in database
-    $stmt = $pdo->prepare("INSERT INTO games (user_id, game_type, bet_amount, win_amount, result, server_seed, client_seed, free_spin, jackpot_won) VALUES (?, 'slot_machine', ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$_SESSION['user_id'], $total_bet, $winnings, json_encode($result), $server_seed, $client_seed, $free_spins > 0 ? 1 : 0, $jackpot_won ? 1 : 0]);
-    
-    // Store the server seed hash for the next game
-    $_SESSION['next_server_seed_hash'] = hash('sha256', $server_seed);
-
-    // Fetch updated balance and jackpot
-    $stmt = $pdo->prepare("SELECT balance FROM users WHERE id = ?");
+    <script>
+        $(document).ready(function() {
+            const minBet = <?php echo $settings['min_bet']; ?>;
+            const maxBet = <?php echo $settings['max_bet']; ?>;
+            const defaultBet = <?php echo $settings['default_bet']; ?>;
+            const defaultLines = <?php echo $settings['default_lines']; ?>;
+            
+            $('#bet_amount').val(defaultBet);
+            $('#lines').val(defaultLines);
+            
+            function updateTotalBet() {
+                const betAmount = parseFloat($('#bet_amount').val());
+                const lines = parseInt($('#lines').val());
+                const totalBet = betAmount * lines;
+                $('#total_bet').text(totalBet.toFixed(2));
+            }
+            
+            $('#bet_amount, #lines').on('input', updateTotalBet);
+            updateTotalBet();
+            
+            $('#increase_bet').click(function() {
+                let currentBet = parseFloat($('#bet_amount').val());
+                if (currentBet < maxBet) {
+                    $('#bet_amount').val((currentBet + 0.1).toFixed(2));
+                    updateTotalBet();
+                }
+            });
+            
+            $('#decrease_bet').click(function() {
+                let currentBet = parseFloat($('#bet_amount').val());
+                if (currentBet > minBet) {
+                    $('#bet_amount').val((currentBet - 0.1).toFixed(2));
+                    updateTotalBet();
+                }
+            });
     $stmt->execute([$_SESSION['user_id']]);
     $updated_balance = $stmt->fetchColumn();
 
