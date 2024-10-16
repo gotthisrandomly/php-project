@@ -23,8 +23,12 @@ function generateSlotResult($pdo, $settings, $server_seed, $client_seed) {
     
     for ($reel = 1; $reel <= 5; $reel++) {
         $reel_symbols = json_decode($settings['reel_' . $reel], true);
-        $hash_index = hexdec($hash_chars[$reel - 1]);
-        $result[] = $reel_symbols[$hash_index % count($reel_symbols)];
+        $reel_result = [];
+        for ($row = 0; $row < 3; $row++) {
+            $hash_index = hexdec($hash_chars[($reel - 1) * 3 + $row]);
+            $reel_result[] = $reel_symbols[$hash_index % count($reel_symbols)];
+        }
+        $result[] = $reel_result;
     }
     return $result;
 }
@@ -37,36 +41,46 @@ function generateServerSeed() {
 // Generate client seed (if not provided)
 function generateClientSeed() {
     return bin2hex(random_bytes(8));
-}
-
 // Function to check for winning combinations
 function checkWinningCombinations($result, $settings, $symbols, $lines, $bet_amount) {
     $winnings = 0;
     $winning_lines = [];
 
-    for ($line = 1; $line <= $lines; $line++) {
+    $paylines = [
+        [0,0,0,0,0], [1,1,1,1,1], [2,2,2,2,2], // Horizontal lines
+        [0,1,2,1,0], [2,1,0,1,2], // V-shaped
+        [0,0,1,2,2], [2,2,1,0,0], // Diagonal
+        [0,1,1,1,0], [2,1,1,1,2], // U-shaped
+        [1,0,0,0,1], [1,2,2,2,1], // Inverted U-shaped
+        [0,1,0,1,0], [2,1,2,1,2], // W-shaped
+        [1,0,1,0,1], [1,2,1,2,1], // M-shaped
+        [0,2,0,2,0], [2,0,2,0,2], // Zigzag
+        [1,1,0,1,1], [1,1,2,1,1]  // Diamond-shaped
+    ];
+
+    for ($line = 0; $line < $lines; $line++) {
         $line_symbols = [];
         for ($reel = 0; $reel < 5; $reel++) {
-            $line_symbols[] = $result[$reel];
+            $line_symbols[] = $result[$reel][$paylines[$line][$reel]];
         }
 
         $count = 1;
         $first_symbol = $line_symbols[0];
         for ($i = 1; $i < 5; $i++) {
-            if ($line_symbols[$i] == $first_symbol) {
+            if ($line_symbols[$i] == $first_symbol || $line_symbols[$i] == $settings['wild_symbol']) {
                 $count++;
             } else {
                 break;
             }
         }
 
-        if ($count >= 3) {
+        if ($count >= 3 || ($first_symbol == $settings['scatter_symbol'] && $count >= 2)) {
             $payout_key = 'payout_' . $first_symbol . '_' . $count;
             $payout = $settings[$payout_key] ?? 0;
             $line_win = $payout * $bet_amount;
             $winnings += $line_win;
             $winning_lines[] = [
-                'line' => $line,
+                'line' => $line + 1,
                 'symbols' => array_slice($line_symbols, 0, $count),
                 'payout' => $line_win
             ];
@@ -75,6 +89,9 @@ function checkWinningCombinations($result, $settings, $symbols, $lines, $bet_amo
 
     return [
         'total_win' => $winnings,
+        'winning_lines' => $winning_lines
+    ];
+}
         'winning_lines' => $winning_lines
     ];
 }
@@ -247,53 +264,34 @@ if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
             .spinning {
                 animation: spin 0.5s linear infinite;
             }
-        </style>
-    </head>
-        <div class="container">
-            <h1 class="mt-4">Slot Machine Game</h1>
-            <div class="jackpot-display">
-                <h2>Current Jackpot: $<span id="jackpot-value"><?php echo number_format($jackpot, 2); ?></span></h2>
+        <form method="post" id="spin-form">
+            <div class="form-group">
+                <label for="bet_amount">Bet Amount Per Line</label>
+                <input type="number" class="form-control" id="bet_amount" name="bet_amount" value="<?php echo $settings['default_bet']; ?>" min="<?php echo $settings['min_bet']; ?>" max="<?php echo $settings['max_bet']; ?>" step="<?php echo $settings['bet_increment']; ?>">
             </div>
-            <div class="slot-machine">
-                <?php for ($i = 0; $i < 5; $i++): ?>
-                <div class="reel" id="reel<?php echo $i; ?>">
-                    <div class="symbols-container">
-                        <?php for ($j = 0; $j < 3; $j++): ?>
-                        <div class="symbol" id="symbol<?php echo $i; ?>-<?php echo $j; ?>">?</div>
-                        <?php endfor; ?>
-                    </div>
-                </div>
-                <?php endfor; ?>
+            <div class="form-group">
+                <label for="lines">Number of Paylines (1-20)</label>
+                <input type="number" class="form-control" id="lines" name="lines" value="<?php echo $settings['default_lines']; ?>" min="1" max="20">
             </div>
-            
-            <form method="post" id="spin-form">
-                <div class="form-group">
-                    <label for="bet_amount">Bet Amount</label>
-                    <input type="number" class="form-control" id="bet_amount" name="bet_amount" value="<?php echo $settings['default_bet']; ?>" min="<?php echo $settings['min_bet']; ?>" max="<?php echo $settings['max_bet']; ?>" step="<?php echo $settings['bet_increment']; ?>">
-                </div>
-                <div class="form-group">
-                    <label for="lines">Number of Lines</label>
-                    <input type="number" class="form-control" id="lines" name="lines" value="<?php echo $settings['default_lines']; ?>" min="1" max="<?php echo $settings['paylines']; ?>">
-                </div>
-                <div class="form-group">
-                    <label for="client_seed">Client Seed (optional)</label>
-                    <input type="text" class="form-control" id="client_seed" name="client_seed" placeholder="Enter a custom seed or leave blank for a random seed">
-                </div>
-                <div class="form-group">
-                    <label for="auto_spins">Auto Spins</label>
-                    <input type="number" class="form-control" id="auto_spins" name="auto_spins" value="0" min="0" max="100">
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="stop_on_win" name="stop_on_win">
-                    <label class="form-check-label" for="stop_on_win">Stop on Win</label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="stop_on_feature" name="stop_on_feature">
-                    <label class="form-check-label" for="stop_on_feature">Stop on Feature (Free Spins)</label>
-                </div>
-                <button type="submit" class="btn btn-primary" id="spin-button" name="action" value="spin">Spin</button>
-                <button type="button" class="btn btn-secondary" id="auto-spin">Auto Spin</button>
-            </form>
+            <div class="form-group">
+                <label for="client_seed">Client Seed (optional)</label>
+                <input type="text" class="form-control" id="client_seed" name="client_seed" placeholder="Enter a custom seed or leave blank for a random seed">
+            </div>
+            <div class="form-group">
+                <label for="auto_spins">Auto Spins</label>
+                <input type="number" class="form-control" id="auto_spins" name="auto_spins" value="0" min="0" max="100">
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="stop_on_win" name="stop_on_win">
+                <label class="form-check-label" for="stop_on_win">Stop on Win</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="stop_on_feature" name="stop_on_feature">
+                <label class="form-check-label" for="stop_on_feature">Stop on Feature (Free Spins)</label>
+            </div>
+            <button type="submit" class="btn btn-primary" id="spin-button" name="action" value="spin">Spin</button>
+            <button type="button" class="btn btn-secondary" id="auto-spin">Auto Spin</button>
+        </form>
             
             <div class="mt-3">
                 <strong>Next Server Seed Hash:</strong> <span id="next-server-seed-hash"><?php echo $_SESSION['next_server_seed_hash']; ?></span>
@@ -420,6 +418,14 @@ if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
                     });
                 }
 
+                function updateSlotMachine(symbols) {
+                    symbols.forEach((reel, reelIndex) => {
+                        reel.forEach((symbol, rowIndex) => {
+                            $(`#symbol${reelIndex}-${rowIndex}`).text(symbol).removeClass('winning-line');
+                        });
+                    });
+                }
+
                 function stopSpinning() {
                     $('.symbols-container').removeClass('spinning');
                     spinSound.pause();
@@ -447,14 +453,6 @@ if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 
                     autoSpin();
                 });
-
-                function updateSlotMachine(symbols) {
-                    symbols.forEach((symbol, index) => {
-                        for (let i = 0; i < 3; i++) {
-                            $(`#symbol${index}-${i}`).text(symbol).removeClass('winning-line');
-                        }
-                    });
-                }
 
                 function updateBalance(balance) {
                     $('.balance').text(parseFloat(balance).toFixed(2));
