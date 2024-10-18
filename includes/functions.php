@@ -47,11 +47,11 @@ function get_user_balance($user_id) {
     return $user ? $user['balance'] : 0;
 }
 
-function update_user_balance($user_id, $amount) {
+function updateUserBalance($user_id, $new_balance) {
     $db = Database::getInstance();
     $user = $db->fetch('users', $user_id);
     if ($user) {
-        $user['balance'] += $amount;
+        $user['balance'] = $new_balance;
         $db->execute('users', $user);
         return true;
     }
@@ -91,4 +91,22 @@ function get_user_game_history($user_id, $limit = 10) {
         return strtotime($b['timestamp']) - strtotime($a['timestamp']);
     });
     return array_slice($user_logs, 0, $limit);
+}
+
+function getCurrentUser() {
+    if (!is_logged_in()) {
+        return null;
+    }
+    $db = Database::getInstance();
+    return $db->fetch('users', $_SESSION['user_id']);
+}
+
+function appendToJsonFile($filename, $data) {
+    $filePath = __DIR__ . '/../data/' . $filename;
+    $currentData = [];
+    if (file_exists($filePath)) {
+        $currentData = json_decode(file_get_contents($filePath), true) ?? [];
+    }
+    $currentData[] = $data;
+    file_put_contents($filePath, json_encode($currentData, JSON_PRETTY_PRINT));
 }
