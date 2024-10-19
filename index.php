@@ -38,6 +38,7 @@ class FrontController {
         '/password-reset/reset' => ['PasswordResetController', 'reset'],
         '/api' => ['ApiController', 'handleRequest'],
     ];
+
     public function run() {
         $uri = $this->getUri();
         
@@ -82,7 +83,6 @@ class FrontController {
             ErrorHandler::logCustomError("Controller class $controllerName not found");
             throw new Exception("Controller class $controllerName not found");
         }
-    }
     }
 
     private function loadView($viewName) {
