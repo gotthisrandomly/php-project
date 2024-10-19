@@ -32,6 +32,8 @@ project/
 ├── views/
 │   ├── admin/
 │   │   ├── dashboard.php
+│   │   ├── edit_player.php
+│   │   ├── login.php
 │   │   ├── manage_players.php
 │   │   └── manage_settings.php
 │   ├── home.php
@@ -61,12 +63,13 @@ The admin panel allows authorized users to manage player accounts and game setti
 To access the admin panel:
 
 1. Navigate to `/admin/login`
-2. Log in with admin credentials
+2. Log in with admin credentials (default: username: admin, password: secretpassword)
 3. Use the dashboard to manage players, view pending cashouts, and adjust game settings
 
 ### Admin Features
 
 - View and manage player accounts
+- Edit player information and view transaction history
 - Approve or block pending cashouts
 - Adjust game settings (e.g., payout rates, minimum bets)
 
@@ -98,6 +101,12 @@ The slot machine game features:
 1. Fork the repository
 2. Create a new branch for your feature
 3. Commit your changes
+4. Push to your branch
+5. Create a pull request
+
+## License
+
+[MIT License](LICENSE)
 4. Push to your branch
 5. Create a pull request
 

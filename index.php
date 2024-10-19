@@ -29,6 +29,7 @@ class FrontController {
         '/admin/approve-cashout' => ['AdminController', 'approveCashout'],
         '/admin/block-cashout' => ['AdminController', 'blockCashout'],
         '/admin/update-setting' => ['AdminController', 'updateGameSetting'],
+        '/admin/edit-player' => ['AdminController', 'editPlayer'],
         '/deposit' => ['DepositController', 'index'],
         '/cashapp' => ['CashappController', 'index'],
         '/payment' => ['PaymentGatewayController', 'index'],
