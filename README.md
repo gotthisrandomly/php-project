@@ -1,6 +1,6 @@
 # SD777Slots
 
-SD777Slots is a PHP-based slot machine game project with additional casino games.
+SD777Slots is a PHP-based slot machine game project with additional casino games and an admin panel for managing users and game settings.
 
 ## Project Structure
 
@@ -14,6 +14,7 @@ project/
 │   └── js/
 │       └── slot-machine.js
 ├── controllers/
+│   ├── AdminController.php
 │   ├── HomeController.php
 │   ├── SlotMachineController.php
 │   └── ...
@@ -29,6 +30,10 @@ project/
 │   └── rate_limiter.php
 ├── tests/
 ├── views/
+│   ├── admin/
+│   │   ├── dashboard.php
+│   │   ├── manage_players.php
+│   │   └── manage_settings.php
 │   ├── home.php
 │   ├── slot_machine.php
 │   └── ...
@@ -49,6 +54,22 @@ project/
 2. The home page (`/`) will display a welcome message and links to available games
 3. Click on "Play Slots" to access the slot machine game
 
+## Admin Panel
+
+The admin panel allows authorized users to manage player accounts and game settings.
+
+To access the admin panel:
+
+1. Navigate to `/admin/login`
+2. Log in with admin credentials
+3. Use the dashboard to manage players, view pending cashouts, and adjust game settings
+
+### Admin Features
+
+- View and manage player accounts
+- Approve or block pending cashouts
+- Adjust game settings (e.g., payout rates, minimum bets)
+
 ## Slot Machine Game
 
 The slot machine game features:
@@ -68,6 +89,7 @@ The slot machine game features:
 
 ## Controllers
 
+- `AdminController`: Manages the admin panel and related actions
 - `HomeController`: Manages the main pages of the application
 - `SlotMachineController`: Handles the slot machine game logic
 

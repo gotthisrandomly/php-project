@@ -51,5 +51,39 @@ class AdminController {
         $stmt = $this->pdo->prepare("INSERT INTO admins (username, password) VALUES (?, ?)");
         return $stmt->execute([$username, $hashedPassword]);
     }
+    public function getGameSettings() {
+        $stmt = $this->pdo->query("SELECT * FROM game_settings");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateGameSetting($settingName, $settingValue) {
+        $stmt = $this->pdo->prepare("UPDATE game_settings SET value = ? WHERE name = ?");
+        return $stmt->execute([$settingValue, $settingName]);
+    }
+
+    public function dashboard() {
+        $playerAccounts = $this->getPlayerAccounts();
+        $pendingCashouts = $this->getPendingCashouts();
+        $gameSettings = $this->getGameSettings();
+
+        include 'views/admin/dashboard.php';
+    }
+
+    public function managePlayers() {
+        $playerAccounts = $this->getPlayerAccounts();
+        include 'views/admin/manage_players.php';
+    }
+
+    public function manageSettings() {
+        $gameSettings = $this->getGameSettings();
+        include 'views/admin/manage_settings.php';
+    }
+
+    public function logout() {
+        unset($_SESSION['admin_logged_in']);
+        session_destroy();
+        header('Location: /admin/login');
+        exit();
+    }
 }
 ?>
