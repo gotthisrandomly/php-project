@@ -12,12 +12,15 @@ class SlotMachineController {
     ];
     private $bonusSymbol = '🌟';
     private $bonusMultiplier = 2;
-
     public function index() {
+        // Prepare data for the view
+        $title = 'Slot Machine Game';
+        $symbols = json_encode($this->symbols);
+        $payoutTable = json_encode($this->payouts);
+        
         // Display the slot machine page
         include 'views/slot_machine.php';
     }
-
     public function spin() {
         // Validate user input
         $betAmount = $this->validateBetAmount($_POST['bet_amount'] ?? 0);

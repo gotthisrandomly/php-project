@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Send spin request to server
-        fetch('/spin', {
+        fetch('/slot-machine/spin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
