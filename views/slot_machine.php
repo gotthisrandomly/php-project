@@ -1,22 +1,18 @@
 <?php
-require_once 'includes/functions.php';
-if (!is_logged_in()) {
-    header('Location: login.php');
-    exit();
-}
-$user = getCurrentUser();
+// Assume user authentication is handled in the controller
+$user = isset($user) ? $user : ['username' => 'Guest', 'balance' => 0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slot Machine Game</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <title><?php echo htmlspecialchars($title); ?></title>
+    <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Slot Machine Game</h1>
+        <h1><?php echo htmlspecialchars($title); ?></h1>
         <div id="user-info">
             <p>Welcome, <?php echo htmlspecialchars($user['username']); ?>!</p>
             <p>Your balance: $<span id="balance"><?php echo number_format($user['balance'], 2); ?></span></p>
@@ -33,7 +29,8 @@ $user = getCurrentUser();
             </div>
         </div>
         <div id="result"></div>
+        <p><?php echo htmlspecialchars($content); ?></p>
     </div>
-    <script src="assets/js/slot-machine.js"></script>
+    <script src="/assets/js/slot-machine.js"></script>
 </body>
 </html>
