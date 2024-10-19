@@ -1,6 +1,6 @@
 <?php
 // Assume user authentication is handled in the controller
-$user = isset($user) ? $user : ['username' => 'Guest', 'balance' => 0];
+$user = isset($user) ? $user : ['username' => 'Guest', 'balance' => 1000];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,13 +24,25 @@ $user = isset($user) ? $user : ['username' => 'Guest', 'balance' => 0];
                 <div class="reel" id="reel3"></div>
             </div>
             <div id="controls">
-                <input type="number" id="bet-amount" min="1" step="1" value="1">
+                <input type="number" id="bet-amount" min="1" max="100" step="1" value="1">
                 <button id="spin-button">Spin</button>
             </div>
         </div>
         <div id="result"></div>
-        <p><?php echo htmlspecialchars($content); ?></p>
+        <div id="payout-table">
+            <h3>Payout Table</h3>
+            <table>
+                <tr><th>Combination</th><th>Payout</th></tr>
+                <?php foreach ($payoutTable as $combination => $payout): ?>
+                    <tr><td><?php echo $combination; ?></td><td><?php echo $payout; ?>x</td></tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
     </div>
+    <script>
+        const symbols = <?php echo $symbols; ?>;
+        const payoutTable = <?php echo $payoutTable; ?>;
+    </script>
     <script src="/assets/js/slot-machine.js"></script>
 </body>
 </html>
