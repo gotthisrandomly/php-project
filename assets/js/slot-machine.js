@@ -1,53 +1,64 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const spinButton = document.getElementById('spin-button');
-    const betAmount = document.getElementById('bet-amount');
     const reels = document.querySelectorAll('.reel');
+    const spinButton = document.getElementById('spin-button');
+    const betInput = document.getElementById('bet-amount');
     const balanceElement = document.getElementById('balance');
     const resultElement = document.getElementById('result');
 
+    let spinning = false;
+
     spinButton.addEventListener('click', () => {
-        const bet = parseFloat(betAmount.value);
-        if (isNaN(bet) || bet <= 0) {
-            alert('Please enter a valid bet amount');
+        if (spinning) return;
+        spinning = true;
+
+        const bet = parseInt(betInput.value);
+        const balance = parseFloat(balanceElement.textContent.replace('$', '').replace(',', ''));
+
+        if (bet > balance) {
+            alert('Insufficient balance!');
+            spinning = false;
             return;
         }
 
-        spinButton.disabled = true;
-        resultElement.textContent = 'Spinning...';
+        balanceElement.textContent = '$' + (balance - bet).toFixed(2);
 
-        fetch('/spin', {
+        // Simulate spinning animation
+        reels.forEach(reel => {
+            reel.textContent = '🎰';
+            reel.style.animation = 'none';
+            reel.offsetHeight; // Trigger reflow
+            reel.style.animation = 'spin 0.5s linear infinite';
+        });
+
+        // Send spin request to server
+        fetch('/slot-machine/spin', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: JSON.stringify({ bet_amount: bet }),
+            body: `bet=${bet}`
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            
-            // Update reels
-            data.symbols.forEach((symbol, index) => {
-                reels[index].textContent = symbol;
+            // Stop spinning animation
+            reels.forEach((reel, index) => {
+                setTimeout(() => {
+                    reel.style.animation = 'none';
+                    reel.textContent = data.reels[index];
+                }, (index + 1) * 500);
             });
 
-            // Update balance
-            balanceElement.textContent = data.newBalance.toFixed(2);
-
-            // Display result
-            if (data.winAmount > 0) {
-                resultElement.textContent = `You won $${data.winAmount.toFixed(2)}!`;
-            } else {
-                resultElement.textContent = 'Better luck next time!';
-            }
+            // Update balance and show result
+            setTimeout(() => {
+                const newBalance = balance - bet + data.win;
+                balanceElement.textContent = '$' + newBalance.toFixed(2);
+                resultElement.textContent = data.message;
+                spinning = false;
+            }, 2000);
         })
         .catch(error => {
-            resultElement.textContent = `Error: ${error.message}`;
-        })
-        .finally(() => {
-            spinButton.disabled = false;
+            console.error('Error:', error);
+            spinning = false;
         });
     });
 });

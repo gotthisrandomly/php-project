@@ -21,7 +21,15 @@ class FrontController {
         '/blackjack' => ['BlackjackController', 'index'],
         '/roulette' => ['RouletteController', 'index'],
         '/slot-machine' => ['SlotMachineController', 'index'],
-        '/admin' => ['AdminController', 'index'],
+        '/admin' => ['AdminController', 'dashboard'],
+        '/admin/login' => ['AdminController', 'login'],
+        '/admin/logout' => ['AdminController', 'logout'],
+        '/admin/manage-players' => ['AdminController', 'managePlayers'],
+        '/admin/manage-settings' => ['AdminController', 'manageSettings'],
+        '/admin/approve-cashout' => ['AdminController', 'approveCashout'],
+        '/admin/block-cashout' => ['AdminController', 'blockCashout'],
+        '/admin/update-setting' => ['AdminController', 'updateGameSetting'],
+        '/admin/edit-player' => ['AdminController', 'editPlayer'],
         '/deposit' => ['DepositController', 'index'],
         '/cashapp' => ['CashappController', 'index'],
         '/payment' => ['PaymentGatewayController', 'index'],
@@ -51,26 +59,30 @@ class FrontController {
 
     private function loadController($controllerName, $methodName) {
         $controllerFile = __DIR__ . '/controllers/' . $controllerName . '.php';
+        $appControllerFile = __DIR__ . '/app/Controllers/' . $controllerName . '.php';
         
         if (file_exists($controllerFile)) {
             require_once $controllerFile;
-            
-            if (class_exists($controllerName)) {
-                $controller = new $controllerName();
-                if (method_exists($controller, $methodName)) {
-                    $controller->$methodName();
-                } else {
-                    ErrorHandler::logCustomError("Method $methodName not found in $controllerName");
-                    throw new Exception("Method $methodName not found in $controllerName");
-                }
+        } elseif (file_exists($appControllerFile)) {
+            require_once $appControllerFile;
+        } else {
+            ErrorHandler::logCustomError("Controller file for $controllerName not found");
+            throw new Exception("Controller file for $controllerName not found");
+        }
+        
+        if (class_exists($controllerName)) {
+            $controller = new $controllerName();
+            if (method_exists($controller, $methodName)) {
+                $controller->$methodName();
             } else {
-                ErrorHandler::logCustomError("Controller class $controllerName not found");
-                throw new Exception("Controller class $controllerName not found");
+                ErrorHandler::logCustomError("Method $methodName not found in $controllerName");
+                throw new Exception("Method $methodName not found in $controllerName");
             }
         } else {
-            ErrorHandler::logCustomError("Controller file $controllerFile not found");
-            throw new Exception("Controller file $controllerFile not found");
+            ErrorHandler::logCustomError("Controller class $controllerName not found");
+            throw new Exception("Controller class $controllerName not found");
         }
+    }
     }
 
     private function loadView($viewName) {
